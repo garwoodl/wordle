@@ -3,6 +3,7 @@ Host games and manage the board in the Game class
 '''
 import config
 from players import Player
+import matplotlib.pyplot as plt
 
 def guess_is_legal(words, guess):
     return len(guess) == 5 and guess in words
@@ -90,9 +91,18 @@ def main():
     filename = 'test_words.txt'
     words = txt_to_set(filename)
 
-    combo_probs = get_combo_probs(words, 'aaaaa')
-    sorted_probs = {k: v for k, v in sorted(combo_probs.items(), key=lambda item: item[1])}
-    print(sorted_probs)
+    combo_probs = get_combo_probs(words, word)
+    # sorted_probs = {k: v for k, v in sorted(combo_probs.items(), key=lambda item: item[1])}
+    
+    x = list(combo_probs.keys())
+    y = list(combo_probs.values())
+    plt.figure(figsize=(12, 8))
+    plt.bar(x, y, color='skyblue')
+    plt.xlabel("Combinations")
+    plt.ylabel("Probabilities")
+    plt.title(f"Combo probs: {word}")
+    plt.tight_layout()
+    plt.show()
 
 
     
