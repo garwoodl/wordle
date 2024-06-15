@@ -42,7 +42,6 @@ def txt_to_set(filename):
         word_set.add(line.strip().lower())
     return word_set
 
-
 def get_result(true_word: str, guess_word: str) -> str:
     '''
     Returns a string of color characters for the given guessed word
@@ -71,11 +70,29 @@ def get_result(true_word: str, guess_word: str) -> str:
         
     return ''.join(result)
 
+def get_combo_probs(possible_words, guess):
+    '''
+    Given a list of possible words (for example by using remaining options) this
+    function returns a dictionary of all result combinations and their respective
+    probability of happening
+    '''
+    n = len(possible_words)
+    combo_probs = {combo: 0 for combo in config.COLOR_COMBOS}
+    
+    for w in possible_words:
+        result = get_result(w, guess)
+        combo_probs[result] += 1 / n
+    return combo_probs
+
 
 def main():
-    word = 'grece'
-    filename = 'official_word_bank.txt'
+    word = 'grace'
+    filename = 'test_words.txt'
     words = txt_to_set(filename)
+
+    combo_probs = get_combo_probs(words, 'aaaaa')
+    sorted_probs = {k: v for k, v in sorted(combo_probs.items(), key=lambda item: item[1])}
+    print(sorted_probs)
 
 
     
