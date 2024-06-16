@@ -9,6 +9,7 @@ import math
 from helper_funcs import *
 from operator import itemgetter
 import json
+import os
 
 class Player:
     def __init__(self, words: set[str], name: str):
@@ -62,8 +63,15 @@ class InfoPlayer(Player):
         '''
         self.words = words
         self.name = name
-        with open(starting_dict_filename, 'r') as json_file:
-            self.loaded_combo_probs = json.load(json_file)
+        if os.path.isfile(starting_dict_filename):
+            with open(starting_dict_filename, 'r') as json_file:
+                self.loaded_combo_probs = json.load(json_file)
+        else:
+            print(f"{starting_dict_filename} does not exist yet. Creating it now...")
+            self.loaded_combo_probs = self.get_info_dict([], verbose=True)
+            print(f"{starting_dict_filename} created.")
+            with open(starting_dict_filename, 'w') as json_file:
+                json.dump(self.loaded_combo_probs, json_file)
 
     def guess(self, guess_history, verbose=False):
         '''
