@@ -7,6 +7,8 @@ import random
 import config
 import math
 from helper_funcs import *
+from operator import itemgetter
+import json
 
 class Player:
     def __init__(self, words: set[str], name: str):
@@ -17,7 +19,7 @@ class Player:
         self.name = name
     
     @abstractmethod
-    def guess(self, guess_history):
+    def guess(self, guess_history, verbose=False):
         """
         Returns a 5 letter word trying to guess the wordle.
 
@@ -54,13 +56,33 @@ class HumanPlayer(Player):
 
 
 class InfoPlayer(Player):
-    def guess(self, guess_history):
+    def __init__(self, words: set[str], name: str, starting_dict_filename='info_dict.json'):
+        '''
+        Load the precomputed info
+        '''
+        self.words = words
+        self.name = name
+        with open(starting_dict_filename, 'r') as json_file:
+            self.loaded_combo_probs = json.load(json_file)
+
+    def guess(self, guess_history, verbose=False):
         '''
         Pick the guess that maximizes the expected information gained
         '''
+        options = remaining_options(self.words, guess_history)
+        if len(options) == 1:
+            return list(options)[0]
 
+        if len(guess_history) == 0:
+            info_dict = self.loaded_combo_probs
+        else:
+            info_dict = self.get_info_dict(guess_history, verbose=verbose)
+        argmax = max(info_dict, key=info_dict.get)
+        if verbose:
+            print(f"{self.name} chooses {argmax} for guess number {len(guess_history) + 1}.")
+        return argmax
 
-    def get_info_dict(self, guess_history):
+    def get_info_dict(self, guess_history, verbose=False):
         '''
         Loops through each word and then through each possible
         combination to get the expected information from 
@@ -69,7 +91,11 @@ class InfoPlayer(Player):
         info_dict = {}
         available_words = remaining_options(self.words, guess_history)
         n = len(available_words)  # amount of info we have now
-        for word in self.words:
+        for i, word in enumerate(self.words):
+            if verbose and i % 2000 == 0:
+                print(f"{round(i / len(self.words), 4)*100}% done...")
+                headline = dict(sorted(info_dict.items(), key=itemgetter(1), reverse=True)[:10])
+                print(headline)
             combo_probs = get_combo_probs(available_words, word)
             expected_bits = 0
             for combo, prob in combo_probs.items():
@@ -87,6 +113,8 @@ class InfoPlayer(Player):
                     # print('bits', bits)
                     expected_bits += prob * bits
             info_dict[word] = expected_bits
+        if verbose:
+            print('Done.')
         return info_dict
     
 
