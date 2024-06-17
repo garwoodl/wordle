@@ -20,11 +20,11 @@ def play_game(words, word, player: Player, verbose=True):
     words_guessed = []
     for i in range(6):  # six guesses
         guess = player.guess(guess_history, verbose=verbose)
-        if not guess_is_legal(words, guess):
-            if verbose:
-                print(f'Illegal guess!')
-                print(f'{player.name} cannot guess {guess}.')
-            return False, words_guessed
+        # if not guess_is_legal(words, guess):
+        #     if verbose:
+        #         print(f'Illegal guess!')
+        #         print(f'{player.name} cannot guess {guess}.')
+        #     return False, words_guessed
         
         result = get_result(word, guess)
         words_guessed.append(guess)
