@@ -157,6 +157,9 @@ class InfoPlayerAnswerSet(InfoPlayer):
             info_dict = self.get_info_dict(guess_history, verbose=verbose)
         argmax = max(info_dict, key=info_dict.get)
         if verbose:
+            # N = 10
+            # best_words = dict(sorted(info_dict.items(), key=itemgetter(1), reverse=True)[:N])
+            # print(f"The best words are {best_words}")
             print(f"{self.name} chooses {argmax} for guess number {len(guess_history) + 1}.")
         return argmax
 
@@ -193,6 +196,82 @@ class InfoPlayerAnswerSet(InfoPlayer):
             info_dict[word] = expected_bits
         if verbose:
             print('Done.')
+        return info_dict
+
+class InfoPlayerHardMode(InfoPlayer):
+    def __init__(self, words: set[str], answer_words: set[str], name: str, starting_dict_filename='info_dict.json'):
+        '''
+        Load the precomputed info
+        '''
+        self.words = words
+        self.answer_words = answer_words
+        self.name = name
+        if os.path.isfile(starting_dict_filename):
+            with open(starting_dict_filename, 'r') as json_file:
+                self.loaded_combo_probs = json.load(json_file)
+        else:
+            print(f"{starting_dict_filename} does not exist yet. Creating it now...")
+            self.loaded_combo_probs = self.get_info_dict([], verbose=True)
+            print(f"{starting_dict_filename} created.")
+            with open(starting_dict_filename, 'w') as json_file:
+                json.dump(self.loaded_combo_probs, json_file)
+
+    def guess(self, guess_history, verbose=False):
+        '''
+        Pick the guess that maximizes the expected information gained
+        Follows Hard mode rules
+        '''
+        options = remaining_options(self.answer_words, guess_history)
+        if len(options) == 1:
+            return list(options)[0]
+
+        if len(guess_history) == 0:
+            info_dict = self.loaded_combo_probs
+        else:
+            info_dict = self.get_info_dict(guess_history, verbose=verbose)
+        argmax = max(info_dict, key=info_dict.get)
+        if verbose:
+            # N = 10
+            # best_words = dict(sorted(info_dict.items(), key=itemgetter(1), reverse=True)[:N])
+            # print(f"The best words are {best_words}")
+            print(f"{self.name} chooses {argmax} for guess number {len(guess_history) + 1}.")
+        return argmax
+
+    def get_info_dict(self, guess_history, verbose=False):
+        '''
+        Loops through each word and then through each possible
+        combination to get the expected information from 
+        each combination and sums to get the expectation.
+        '''
+        info_dict = {}
+        available_guesses = remaining_options(self.words, guess_history)
+        available_answers = remaining_options(self.answer_words, guess_history)
+        n = len(available_answers)  # amount of info we have now
+        for i, word in enumerate(available_guesses):
+            if verbose and i % 1000 == 0 and i > 0:
+                print(f"{round(i / len(available_guesses), 4)*100}% done...")
+                headline = dict(sorted(info_dict.items(), key=itemgetter(1), reverse=True)[:10])
+                print(headline)
+            combo_probs = get_combo_probs(available_answers, word)
+            expected_bits = 0
+            for combo, prob in combo_probs.items():
+                new_guess_history = guess_history.copy()
+                # if we guess this word and get this combo,
+                # how much does that reduce the number of available words
+                new_guess_history.append((word, combo))
+                # print(new_guess_history)
+                new_available_words = remaining_options(available_answers, new_guess_history)
+                m = len(new_available_words)
+                # print('m', m)
+                # print('n', n)
+                if m > 0:
+                    bits = - math.log2(m / n)
+                    # print('bits', bits)
+                    expected_bits += prob * bits
+            info_dict[word] = expected_bits
+        if verbose:
+            headline = dict(sorted(info_dict.items(), key=itemgetter(1), reverse=True)[:10])
+            print(headline)
         return info_dict
 
 def main():
